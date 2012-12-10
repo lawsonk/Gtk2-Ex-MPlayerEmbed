@@ -7,6 +7,7 @@ use constant {
 	PAUSE		=> 'pause',
 	RESUME		=> 'pause', # 'pause' is really a toggle
 	CLOSE		=> 'quit',
+        SS              => 'screenshot',
 };
 use Carp;
 use FileHandle;
@@ -14,7 +15,7 @@ use Gtk2;
 use vars qw($VERSION $STATE_ENUM_PKG);
 use strict;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 
 BEGIN {
@@ -174,7 +175,7 @@ sub play {
 
 	} else {
 		my $cmd = sprintf(
-			'|%s -slave -wid %d -geometry %dx%d %s "%s" 1>/dev/null 2>/dev/null',
+			'|%s -slave -vf screenshot -wid %d -geometry %dx%d %s "%s" 1>/dev/null 2>/dev/null',
 			$self->get('mplayer_path'),
 			$self->get_id,
 			$self->allocation->width,
@@ -255,6 +256,28 @@ sub stop {
 
 =pod
 
+        $embed->screenshot;
+
+This method will take a screenshot of video stream. If the stream is not playing,
+this method will carp() and return undef. Files named 'shotNNNN.png' will be 
+saved in the working directory, using the first available number - no  files  will 
+be  overwritten.
+
+=cut
+
+sub screenshot {
+        my $self = shift;
+        if (!$self->get('loaded') || $self->get('state') eq 'stopped') {
+                carp("Player must be loaded and playing before you can take a screenshot.");
+                return undef;
+
+        } else {
+                return $self->tell_slave(SS);
+        }
+}
+
+=pod
+
 	$embed->tell_slave($something);
 
 This method sends a command to the I<mplayer> slave process. The available
@@ -265,6 +288,7 @@ distribution.
 
 sub tell_slave {
 	my ($self, $msg) = @_;
+	$self->slave->autoflush(1);
 	return $self->slave->print("$msg\n");
 }
 
